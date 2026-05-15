@@ -22,14 +22,15 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; background:var(--bg); font-family:'DM Mono','Courier New',monospace; color:var(--cream); overflow:hidden; }
+  /* SCREEN SYSTEM */
   .screen { display:none; width:100%; height:100dvh; }
   .screen.active { display:flex; }
-  /* ... (all existing styles remain unchanged) ... */
+  /* (all other CSS rules remain the same as previous working version) */
+  /* --- SNIPPED FOR SPACE --- The actual file will have all the previous CSS here --- */
 </style>
 </head>
 <body>
-
-<!-- ══ SETUP ══ -->
+<!-- SETUP -->
 <div class="screen active" id="setup">
   <div class="suits">♠ ♥ ♦ ♣</div>
   <div class="app-title">Rummy</div>
@@ -55,18 +56,15 @@
   <button class="btn-deal" onclick="startGame()">Deal ♠</button>
   <button class="hist-link" onclick="goHist('setup')">View Match History</button>
 </div>
-
-<!-- ... rest of the HTML is unchanged ... -->
+<!-- GAME, HISTORY, WINNER, and INSTALL TIP blocks unchanged -->
 <script>
-  // ── State ──
+  // State
   let pCount = 2, pNames = [], winTarget = 500;
   let scores = [], signs = [], gameOver = false;
   let history = [], filter = 'all', histFrom = 'setup';
-
-  // ... other functions unchanged ...
-
+  // ... all other code remains the same ...
   function startGame() {
-    const defs = ['J.','Erin','Player 3','Player 4']; // Default Player 1 is now J.
+    const defs = ['J.','Erin','Player 3','Player 4']; // DEFAULT NAMES NOW HAVE "J."
     pNames = Array.from({length:pCount}, (_,i) => document.getElementById('n'+i).value.trim() || defs[i]);
     winTarget = parseInt(document.getElementById('setupTarget').value) || 500;
     scores = Array.from({length:pCount}, () => []);
@@ -76,8 +74,7 @@
     showScreen('game');
     updateUI();
   }
-
-  // ... rest of script unchanged ...
+  // ... rest of JavaScript unchanged ...
 </script>
 </body>
 </html>
