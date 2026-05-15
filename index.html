@@ -24,7 +24,7 @@
   html, body { height:100%; background:var(--bg); font-family:'DM Mono','Courier New',monospace; color:var(--cream); overflow:hidden; }
   .screen { display:none; width:100%; height:100dvh; }
   .screen.active { display:flex; }
-  /* ... (styles unchanged for brevity) ... */
+  /* ... (all existing styles remain unchanged) ... */
 </style>
 </head>
 <body>
@@ -56,15 +56,17 @@
   <button class="hist-link" onclick="goHist('setup')">View Match History</button>
 </div>
 
-<!-- ... (rest of HTML unchanged) ... -->
+<!-- ... rest of the HTML is unchanged ... -->
 <script>
   // ── State ──
   let pCount = 2, pNames = [], winTarget = 500;
   let scores = [], signs = [], gameOver = false;
   let history = [], filter = 'all', histFrom = 'setup';
-  // ...
+
+  // ... other functions unchanged ...
+
   function startGame() {
-    const defs = ['J.','Erin','Player 3','Player 4']; // CHANGED: Default names
+    const defs = ['J.','Erin','Player 3','Player 4']; // Default Player 1 is now J.
     pNames = Array.from({length:pCount}, (_,i) => document.getElementById('n'+i).value.trim() || defs[i]);
     winTarget = parseInt(document.getElementById('setupTarget').value) || 500;
     scores = Array.from({length:pCount}, () => []);
@@ -74,7 +76,8 @@
     showScreen('game');
     updateUI();
   }
-// ... rest of JS unchanged ...
+
+  // ... rest of script unchanged ...
 </script>
 </body>
 </html>
