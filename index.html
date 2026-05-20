@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rummy">
+<meta name="theme-color" content="#0f0e0c">
+<title>Rummy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0e0c;
+    --card: #1a1814;
+    --gold: #c9a84c;
+    --gold-l: #e8c97a;
+    --cream: #f5f0e8;
+    --accent: #8b6914;
+    --muted: rgba(245,240,232,0.35);
+    --neg: #e07070;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; background:var(--bg); font-family:'DM Mono','Courier New',monospace; color:var(--cream); overflow:hidden; }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen { display:none; width:100%; height:100dvh; }
+  .screen.active { display:flex; }
+
+  /* ══════════════════════════════
+     SETUP SCREEN
+  ══════════════════════════════ */
+  #setup {
+    flex-direction:column; align-items:center; justify-content:center;
+    padding:20px; gap:18px;
+    background: radial-gradient(ellipse at top, #1a1410 0%, #0f0e0c 70%);
+  }
+
+  .suits { font-size:1.5rem; letter-spacing:0.5rem; color:var(--gold); opacity:0.6; }
+  .app-title { font-family:'Playfair Display',Georgia,serif; font-size:2.6rem; font-weight:900; color:var(--gold-l); letter-spacing:0.1em; text-transform:uppercase; text-shadow:0 0 40px rgba(201,168,76,0.3); }
+
+  .section-label { font-size:0.58rem; letter-spacing:0.25em; color:var(--muted); text-transform:uppercase; }
+
+  .count-row { display:flex; gap:10px; }
+  .count-btn {
+    width:54px; height:54px; border-radius:12px;
+    border:1px solid rgba(201,168,76,0.2); background:var(--card);
+    color:var(--muted); font-family:'Playfair Display',Georgia,serif;
+    font-size:1.5rem; font-weight:700; cursor:pointer; transition:all 0.2s;
+  }
+  .count-btn.on { border-color:var(--gold); color:var(--gold-l); background:rgba(201,168,76,0.1); }
+
+  .name-list { display:flex; flex-direction:column; gap:8px; width:100%; max-width:300px; }
+  .name-row { display:flex; align-items:center; gap:8px; }
+  .name-num { font-size:0.58rem; color:var(--accent); width:14px; text-align:right; flex-shrink:0; }
+  .name-field {
+    flex:1; background:var(--card); border:1px solid rgba(201,168,76,0.2); border-radius:8px;
+    color:var(--cream); font-family:'Playfair Display',Georgia,serif;
+    font-size:1rem; font-weight:700; padding:9px 12px; outline:none; transition:border-color 0.2s;
+  }
+  .name-field:focus { border-color:var(--gold); }
+  .name-field::placeholder { color:rgba(245,240,232,0.2); font-weight:400; font-style:italic; }
+  .name-row.hide { display:none; }
+
+  .target-row { display:flex; align-items:center; gap:10px; font-size:0.65rem; letter-spacing:0.1em; color:var(--gold); }
+  .target-row input {
+    background:transparent; border:none; border-bottom:1px solid var(--gold);
+    color:var(--gold-l); font-family:'Playfair Display',Georgia,serif;
+    font-size:1rem; font-weight:700; width:58px; text-align:center; outline:none;
+  }
+
+  .btn-deal {
+    width:100%; max-width:300px; padding:14px;
+    background:linear-gradient(135deg,#2a5238,#1e3d2a);
+    border:1px solid rgba(201,168,76,0.35); border-radius:10px;
+    color:var(--gold-l); font-family:'Playfair Display',Georgia,serif;
+    font-size:1rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-deal:active { transform:scale(0.98); }
+
+  .hist-link {
+    font-size:0.56rem; letter-spacing:0.15em; color:var(--muted);
+    text-transform:uppercase; background:none; border:none; cursor:pointer;
+  }
+  .hist-link:active { color:var(--gold); }
+
+  /* ══════════════════════════════
+     GAME SCREEN  (portrait)
+  ══════════════════════════════ */
+  #game {
+    flex-direction:column;
+    padding: env(safe-area-inset-top,10px) 12px env(safe-area-inset-bottom,10px) 12px;
+    gap:6px; max-width:540px; margin:0 auto;
+  }
+
+  /* landscape reflow */
+  @media (orientation:landscape) {
+    #game { flex-direction:row; gap:10px; max-width:100%;
+      padding-left:env(safe-area-inset-left,12px);
+      padding-right:env(safe-area-inset-right,12px); }
+    #game .left  { display:flex; flex-direction:column; flex:1; min-width:0; gap:6px; }
+    #game .right { display:flex; flex-direction:column; width:210px; flex-shrink:0; gap:6px; }
+  }
+  @media (orientation:portrait) {
+    #game .left  { display:contents; }
+    #game .right { display:contents; }
+  }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .game-logo { font-family:'Playfair Display',Georgia,serif; font-size:0.9rem; font-weight:700; color:var(--gold); letter-spacing:0.2em; text-transform:uppercase; }
+  .topbar-btns { display:flex; gap:5px; }
+  .tbtn {
+    background:transparent; border:1px solid rgba(245,240,232,0.1); border-radius:6px;
+    color:var(--muted); font-family:'DM Mono',monospace;
+    font-size:0.5rem; letter-spacing:0.1em; text-transform:uppercase;
+    padding:5px 8px; cursor:pointer; transition:all 0.2s;
+  }
+  .tbtn:active { border-color:rgba(201,168,76,0.4); color:var(--gold); }
+
+  /* scoreboard */
+  .board { display:grid; gap:7px; flex-shrink:0; }
+  .board.n2 { grid-template-columns:1fr 1fr; }
+  .board.n3 { grid-template-columns:1fr 1fr 1fr; }
+  .board.n4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+
+  @media (orientation:landscape) {
+    .board { flex:1; }
+    .board.n4 { grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+  }
+
+  .pcard {
+    background:var(--card); border:1px solid rgba(201,168,76,0.18);
+    border-radius:10px; padding:9px 8px; position:relative; overflow:hidden;
+    transition:border-color 0.3s;
+  }
+  .pcard::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--gold),transparent); opacity:0.3; }
+  .pcard.lead { border-color:rgba(201,168,76,0.55); box-shadow:0 0 18px rgba(201,168,76,0.08); }
+  .pcard.lead::before { opacity:1; }
+  .lead-tag { position:absolute; top:5px; right:5px; font-size:0.42rem; letter-spacing:0.12em; color:var(--gold); text-transform:uppercase; display:none; }
+  .pcard.lead .lead-tag { display:block; }
+  .pname {
+    font-family:'Playfair Display',Georgia,serif; font-weight:700; color:var(--gold-l);
+    text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-size:1rem;
+  }
+  .ptotal {
+    font-family:'Playfair Display',Georgia,serif; font-weight:900;
+    text-align:center; color:var(--cream); line-height:1.05;
+    margin:2px 0; transition:transform 0.18s; font-size:2.6rem;
+  }
+  .ptotal.bump { transform:scale(1.14); color:var(--gold-l); }
+  .ptotal.neg { color:var(--neg); }
+  .rlist { font-size:0.5rem; color:rgba(245,240,232,0.35); text-align:center; max-height:28px; overflow:hidden; line-height:1.8; }
+  .rlist .nr { color:var(--neg); opacity:0.75; }
+
+  /* smaller cards for 3-4p portrait */
+  .board.n3 .pname, .board.n4 .pname { font-size:0.82rem; }
+  .board.n3 .ptotal, .board.n4 .ptotal { font-size:2rem; }
+
+  /* landscape uniform sizing */
+  @media (orientation:landscape) {
+    .pname { font-size:0.82rem !important; }
+    .ptotal { font-size:1.9rem !important; }
+  }
+
+  /* entry panel */
+  .entry-panel { background:var(--card); border:1px solid rgba(201,168,76,0.15); border-radius:10px; padding:10px 12px; flex-shrink:0; }
+  .entry-lbl { font-size:0.54rem; letter-spacing:0.18em; color:var(--gold); text-transform:uppercase; text-align:center; margin-bottom:8px; }
+  .entry-grid { display:grid; gap:8px; margin-bottom:8px; }
+  .entry-grid.n2 { grid-template-columns:1fr 1fr; }
+  .entry-grid.n3 { grid-template-columns:1fr 1fr 1fr; }
+  .entry-grid.n4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media (orientation:landscape) {
+    .entry-grid.n3, .entry-grid.n4 { grid-template-columns:1fr 1fr; }
+  }
+
+  .eg { display:flex; flex-direction:column; gap:3px; }
+  .eg label { font-size:0.48rem; letter-spacing:0.07em; color:var(--muted); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .sinput { display:flex; align-items:center; border:1px solid rgba(201,168,76,0.2); border-radius:6px; background:rgba(255,255,255,0.04); overflow:hidden; transition:border-color 0.2s; }
+  .sinput:focus-within { border-color:var(--gold); background:rgba(201,168,76,0.05); }
+  .sinput.isneg { border-color:rgba(224,112,112,0.3); }
+  .sinput.isneg input { color:var(--neg); }
+  .sgn {
+    background:transparent; border:none; border-right:1px solid rgba(201,168,76,0.15);
+    color:var(--muted); font-size:1rem; min-width:28px; padding:0 6px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; align-self:stretch; transition:color 0.15s;
+  }
+  .sgn.isneg { color:var(--neg); }
+  .sinput input {
+    background:transparent; border:none; color:var(--cream);
+    font-family:'Playfair Display',Georgia,serif; font-size:1.3rem; font-weight:700;
+    text-align:center; padding:6px 4px; outline:none; width:100%; min-width:0;
+    -moz-appearance:textfield;
+  }
+  .sinput input::-webkit-outer-spin-button,
+  .sinput input::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+  .btn-add {
+    width:100%; padding:9px;
+    background:linear-gradient(135deg,#2a5238,#1e3d2a);
+    border:1px solid rgba(201,168,76,0.3); border-radius:7px;
+    color:var(--gold-l); font-family:'Playfair Display',Georgia,serif;
+    font-size:0.85rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-add:active { transform:scale(0.98); opacity:0.85; }
+
+  .bot-row { display:flex; gap:8px; flex-shrink:0; }
+  .sbtn {
+    flex:1; padding:7px; background:transparent;
+    border:1px solid rgba(245,240,232,0.1); border-radius:7px;
+    color:var(--muted); font-family:'DM Mono',monospace;
+    font-size:0.54rem; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
+  }
+  .sbtn:active { border-color:rgba(245,240,232,0.3); color:var(--cream); }
+  .rcount { font-size:0.5rem; letter-spacing:0.18em; color:rgba(201,168,76,0.32); text-align:center; flex-shrink:0; }
+
+  /* rotate hint */
+  .rot-hint { font-size:0.48rem; color:rgba(201,168,76,0.3); letter-spacing:0.12em; text-transform:uppercase; text-align:center; flex-shrink:0; }
+  @media (orientation:landscape) { .rot-hint { display:none; } }
+
+  /* ══════════════════════════════
+     HISTORY SCREEN
+  ══════════════════════════════ */
+  #hist {
+    flex-direction:column;
+    padding:env(safe-area-inset-top,12px) 12px env(safe-area-inset-bottom,12px);
+    gap:8px; max-width:540px; margin:0 auto;
+  }
+
+  .hist-top { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .hist-title { font-family:'Playfair Display',Georgia,serif; font-size:1rem; font-weight:700; color:var(--gold-l); letter-spacing:0.15em; text-transform:uppercase; }
+
+  .fpills { display:flex; gap:5px; flex-shrink:0; }
+  .fp {
+    flex:1; padding:6px 4px; border-radius:18px; background:transparent;
+    border:1px solid rgba(201,168,76,0.2); color:var(--muted);
+    font-family:'DM Mono',monospace; font-size:0.52rem; letter-spacing:0.06em;
+    text-transform:uppercase; cursor:pointer; text-align:center; transition:all 0.2s;
+  }
+  .fp.on { background:rgba(201,168,76,0.12); border-color:var(--gold); color:var(--gold-l); }
+
+  .glog { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:7px; min-height:0; -webkit-overflow-scrolling:touch; }
+  .glog::-webkit-scrollbar { width:0; }
+
+  .gentry { background:var(--card); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 14px; flex-shrink:0; }
+  .gentry-players { display:flex; gap:6px; justify-content:space-around; margin-bottom:5px; }
+  .gep { text-align:center; flex:1; min-width:0; }
+  .gep-name { font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gep-name.w { color:var(--gold); }
+  .gep-score { font-family:'Playfair Display',Georgia,serif; font-size:1.1rem; font-weight:700; color:var(--cream); }
+  .gep-score.w { color:var(--gold-l); }
+  .gentry-meta { font-size:0.46rem; color:rgba(255,255,255,0.18); letter-spacing:0.04em; }
+
+  .no-hist { text-align:center; padding:40px 20px; color:var(--muted); font-size:0.62rem; letter-spacing:0.1em; line-height:2.4; }
+
+  /* ══════════════════════════════
+     WINNER OVERLAY
+  ══════════════════════════════ */
+  #winner {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92);
+    z-index:200; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px;
+  }
+  #winner.show { display:flex; }
+  .w-suits { font-size:2.2rem; margin-bottom:8px; animation:bob 2s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .w-lbl { font-size:0.6rem; letter-spacing:0.4em; color:var(--gold); text-transform:uppercase; margin-bottom:6px; }
+  .w-name { font-family:'Playfair Display',Georgia,serif; font-size:clamp(2.4rem,13vw,4.2rem); font-weight:900; color:var(--gold-l); text-shadow:0 0 50px rgba(201,168,76,0.5); margin-bottom:6px; }
+  .w-detail { font-size:0.68rem; color:var(--muted); letter-spacing:0.06em; margin-bottom:4px; }
+  .w-record { font-size:0.58rem; color:var(--accent); letter-spacing:0.06em; margin-bottom:26px; }
+  .btn-ng {
+    padding:12px 36px; background:linear-gradient(135deg,var(--gold),var(--accent));
+    border:none; border-radius:8px; color:var(--bg);
+    font-family:'Playfair Display',Georgia,serif; font-size:0.9rem; font-weight:700;
+    letter-spacing:0.15em; text-transform:uppercase; cursor:pointer;
+  }
+
+  /* install tip */
+  #itip {
+    display:none; position:fixed; bottom:0; left:0; right:0;
+    background:#1a1814; border-top:1px solid rgba(201,168,76,0.18);
+    padding:10px 16px env(safe-area-inset-bottom,8px);
+    align-items:center; justify-content:space-between; gap:10px; z-index:300;
+    font-size:0.54rem; color:var(--muted);
+  }
+  #itip strong { color:var(--gold); display:block; font-size:0.58rem; margin-bottom:1px; }
+  #itip button { background:transparent; border:1px solid rgba(201,168,76,0.2); border-radius:6px; color:var(--muted); font-size:0.5rem; padding:4px 9px; cursor:pointer; font-family:'DM Mono',monospace; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+<div class="screen active" id="setup">
+  <div class="suits">♠ ♥ ♦ ♣</div>
+  <div class="app-title">Rummy</div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+    <div class="section-label">Players</div>
+    <div class="count-row">
+      <button class="count-btn on" onclick="setCount(2)">2</button>
+      <button class="count-btn" onclick="setCount(3)">3</button>
+      <button class="count-btn" onclick="setCount(4)">4</button>
+    </div>
+  </div>
+
+  <div class="name-list">
+    <div class="name-row" id="nr0"><span class="name-num">1</span><input class="name-field" id="n0" placeholder="J" maxlength="12"></div>
+    <div class="name-row" id="nr1"><span class="name-num">2</span><input class="name-field" id="n1" placeholder="Erin" maxlength="12"></div>
+    <div class="name-row hide" id="nr2"><span class="name-num">3</span><input class="name-field" id="n2" placeholder="Player 3" maxlength="12"></div>
+    <div class="name-row hide" id="nr3"><span class="name-num">4</span><input class="name-field" id="n3" placeholder="Player 4" maxlength="12"></div>
+  </div>
+
+  <div class="target-row">
+    <span>WIN AT</span>
+    <input type="number" id="setupTarget" value="500" min="10" max="9999" step="50">
+    <span>POINTS</span>
+  </div>
+
+  <button class="btn-deal" onclick="startGame()">Deal ♠</button>
+  <button class="hist-link" onclick="goHist('setup')">View Match History</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="screen" id="game">
+  <div class="left">
+    <div class="topbar">
+      <div class="game-logo">Rummy</div>
+      <div class="topbar-btns">
+        <button class="tbtn" onclick="undoRound()">↩ Undo</button>
+        <button class="tbtn" onclick="tryNewGame()">↺ New</button>
+        <button class="tbtn" onclick="goHist('game')">History</button>
+      </div>
+    </div>
+    <div class="board n2" id="board"></div>
+  </div>
+  <div class="right">
+    <div class="entry-panel">
+      <div class="entry-lbl" id="entryLbl">Round 1 — Enter Scores</div>
+      <div class="entry-grid n2" id="entryGrid"></div>
+      <button class="btn-add" onclick="addRound()">Add Round ＋</button>
+    </div>
+    <div class="bot-row">
+      <button class="sbtn" onclick="undoRound()">↩ Undo</button>
+      <button class="sbtn" onclick="tryNewGame()">↺ New Game</button>
+    </div>
+    <div class="rcount" id="rcount"></div>
+    <div class="rot-hint" id="rotHint"></div>
+  </div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="screen" id="hist">
+  <div class="hist-top">
+    <div class="hist-title">Match History</div>
+    <button class="tbtn" onclick="backFromHist()">← Back</button>
+  </div>
+  <div class="fpills">
+    <button class="fp on" onclick="setFilter('all',this)">All Time</button>
+    <button class="fp" onclick="setFilter('today',this)">Today</button>
+    <button class="fp" onclick="setFilter('week',this)">This Week</button>
+    <button class="fp" onclick="setFilter('month',this)">Month</button>
+  </div>
+  <div class="glog" id="glog"></div>
+</div>
+
+<!-- ══ WINNER ══ -->
+<div id="winner">
+  <div class="w-suits">♠ ♥ ♦ ♣</div>
+  <div class="w-lbl">Winner!</div>
+  <div class="w-name" id="wName"></div>
+  <div class="w-detail" id="wDetail"></div>
+  <div class="w-record" id="wRecord"></div>
+  <button class="btn-ng" onclick="goSetup()">New Game</button>
+</div>
+
+<!-- ══ INSTALL TIP ══ -->
+<div id="itip">
+  <div><strong>📲 Save to Home Screen</strong>Tap Share → "Add to Home Screen"</div>
+  <button onclick="dismissTip()">✕</button>
+</div>
+
+<script>
+  // ── State ──
+  let pCount = 2, pNames = [], winTarget = 500;
+  let scores = [], signs = [], gameOver = false;
+  let history = [], filter = 'all', histFrom = 'setup';
+
+  // ── Storage ──
+  function loadHist() {
+    try { const r = localStorage.getItem('rummy-v3'); history = r ? JSON.parse(r) : []; }
+    catch(e) { history = []; }
+  }
+  function saveHist() {
+    try { localStorage.setItem('rummy-v3', JSON.stringify(history)); } catch(e) {}
+  }
+
+  // ── Install tip ──
+  function dismissTip() {
+    localStorage.setItem('itip','1');
+    document.getElementById('itip').style.display = 'none';
+  }
+  window.addEventListener('load', () => {
+    const sa = window.navigator.standalone || window.matchMedia('(display-mode:standalone)').matches;
+    if (!sa && !localStorage.getItem('itip')) document.getElementById('itip').style.display = 'flex';
+  });
+
+  // ── Screen nav ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function goSetup() {
+    document.getElementById('winner').classList.remove('show');
+    showScreen('setup');
+  }
+  function goHist(from) { histFrom = from; renderHist(); showScreen('hist'); }
+  function backFromHist() { showScreen(histFrom === 'game' ? 'game' : 'setup'); }
+  function tryNewGame() {
+    if (scores.length && scores[0].length > 0 && !gameOver) {
+      if (!confirm('Start a new game?')) return;
+    }
+    goSetup();
+  }
+
+  // ── Setup ──
+  function setCount(n) {
+    pCount = n;
+    document.querySelectorAll('.count-btn').forEach((b,i) => b.classList.toggle('on', i+2 === n));
+    for (let i = 0; i < 4; i++) document.getElementById('nr'+i).classList.toggle('hide', i >= n);
+  }
+
+  function startGame() {
+    const defs = ['J','Erin','Player 3','Player 4'];
+    pNames = Array.from({length:pCount}, (_,i) => document.getElementById('n'+i).value.trim() || defs[i]);
+    winTarget = parseInt(document.getElementById('setupTarget').value) || 500;
+    scores = Array.from({length:pCount}, () => []);
+    signs = Array(pCount).fill(1);
+    gameOver = false;
+    buildGame();
+    showScreen('game');
+    updateUI();
+  }
+
+  // ── Build game DOM ──
+  function buildGame() {
+    // Board
+    const board = document.getElementById('board');
+    board.className = 'board n' + pCount;
+    board.innerHTML = pNames.map((name,i) => `
+      <div class="pcard" id="pc${i}">
+        <div class="lead-tag">Leading</div>
+        <div class="pname" id="pn${i}">${name}</div>
+        <div class="ptotal" id="pt${i}">0</div>
+        <div class="rlist" id="rl${i}">—</div>
+      </div>`).join('');
+
+    // Entry grid
+    const eg = document.getElementById('entryGrid');
+    eg.className = 'entry-grid n' + pCount;
+    eg.innerHTML = pNames.map((name,i) => `
+      <div class="eg">
+        <label>${name}</label>
+        <div class="sinput" id="sw${i}">
+          <button class="sgn" id="sg${i}" onclick="toggleSign(${i})" type="button">+</button>
+          <input type="number" id="si${i}" placeholder="0" min="0" inputmode="numeric">
+        </div>
+      </div>`).join('');
+
+    // Rotate hint
+    const rh = document.getElementById('rotHint');
+    rh.textContent = pCount > 2 ? '⟳ Rotate for wider view' : '';
+  }
+
+  // ── Signs ──
+  function toggleSign(i) {
+    signs[i] *= -1;
+    const g = document.getElementById('sg'+i), w = document.getElementById('sw'+i);
+    const neg = signs[i] === -1;
+    g.textContent = neg ? '−' : '+';
+    g.classList.toggle('isneg', neg);
+    w.classList.toggle('isneg', neg);
+  }
+  function resetSigns() {
+    for (let i = 0; i < pCount; i++) {
+      if (signs[i] === -1) toggleSign(i);
+    }
+  }
+
+  // ── Game logic ──
+  function getTotal(i) { return scores[i].reduce((a,b)=>a+b,0); }
+
+  function updateUI() {
+    const totals = pNames.map((_,i) => getTotal(i));
+    const max = Math.max(...totals);
+    const leaders = totals.filter(t => t === max).length;
+    const r = scores[0].length;
+
+    pNames.forEach((_,i) => {
+      const t = totals[i];
+      const el = document.getElementById('pt'+i);
+      el.textContent = t;
+      el.classList.toggle('neg', t < 0);
+      el.classList.toggle('bump', false);
+
+      const rl = document.getElementById('rl'+i);
+      rl.innerHTML = scores[i].length === 0 ? '—'
+        : scores[i].map(s => `<span class="${s<0?'nr':''}">${s}</span>`).join(' · ');
+
+      document.getElementById('pc'+i).classList.toggle('lead', t === max && leaders === 1);
+    });
+
+    document.getElementById('entryLbl').textContent = `Round ${r+1} — Enter Scores`;
+    document.getElementById('rcount').textContent = r > 0 ? `${r} round${r!==1?'s':''} played` : '';
+
+    // Check win
+    if (!gameOver && totals.some(t => t >= winTarget)) {
+      gameOver = true;
+      const wi = totals.indexOf(max);
+      const g = { winner:wi, names:[...pNames], scores:[...totals], rounds:r, ts:Date.now(), target:winTarget };
+      history.unshift(g);
+      saveHist();
+      const wn = pNames[wi];
+      const allW = history.filter(x => x.names && x.names[x.winner] === wn).length;
+      document.getElementById('wName').textContent = wn;
+      document.getElementById('wDetail').textContent = pNames.map((n,i)=>`${n} ${totals[i]}`).join(' · ');
+      document.getElementById('wRecord').textContent = `${wn}'s all-time wins: ${allW}`;
+      document.getElementById('winner').classList.add('show');
+    }
+  }
+
+  function bump(i) {
+    const el = document.getElementById('pt'+i);
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+    setTimeout(()=>el.classList.remove('bump'), 280);
+  }
+
+  function addRound() {
+    if (gameOver) return;
+    const vals = [];
+    for (let i = 0; i < pCount; i++) {
+      const raw = parseInt(document.getElementById('si'+i).value);
+      if (isNaN(raw)) { document.getElementById('si'+i).focus(); return; }
+      vals.push(raw * signs[i]);
+    }
+    vals.forEach((v,i) => { scores[i].push(v); bump(i); });
+    for (let i = 0; i < pCount; i++) document.getElementById('si'+i).value = '';
+    resetSigns();
+    document.getElementById('si0').focus();
+    updateUI();
+  }
+
+  function undoRound() {
+    if (!scores.length || scores[0].length === 0) return;
+    scores.forEach(s => s.pop());
+    gameOver = false;
+    document.getElementById('winner').classList.remove('show');
+    updateUI();
+  }
+
+  // ── History ──
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.fp').forEach(p => p.classList.remove('on'));
+    btn.classList.add('on');
+    renderHist();
+  }
+
+  function inRange(ts) {
+    const now = new Date(), d = new Date(ts);
+    if (filter === 'all') return true;
+    if (filter === 'today') return d.toDateString() === now.toDateString();
+    if (filter === 'week') {
+      const s = new Date(now); s.setDate(now.getDate()-now.getDay()); s.setHours(0,0,0,0);
+      return d >= s;
+    }
+    if (filter === 'month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    return true;
+  }
+
+  function fmtDate(ts) {
+    const d = new Date(ts), now = new Date();
+    const t = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    if (d.toDateString()===now.toDateString()) return `Today ${t}`;
+    if (d.toDateString()===new Date(now-86400000).toDateString()) return `Yesterday ${t}`;
+    return d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+t;
+  }
+
+  function renderHist() {
+    const list = history.filter(g => inRange(g.ts));
+    const el = document.getElementById('glog');
+    if (!list.length) {
+      el.innerHTML = `<div class="no-hist">No games${filter!=='all'?' this period':' yet'}<br><span style="opacity:0.4;font-size:0.54rem">Finish a game to see it here</span></div>`;
+      return;
+    }
+    el.innerHTML = list.map(g => {
+      const names = g.names || ['J','Erin'];
+      return `<div class="gentry">
+        <div class="gentry-players">
+          ${names.map((n,i) => `
+            <div class="gep">
+              <div class="gep-name${i===g.winner?' w':''}">${i===g.winner?'👑 ':''}${n}</div>
+              <div class="gep-score${i===g.winner?' w':''}">${g.scores[i]}</div>
+            </div>`).join('')}
+        </div>
+        <div class="gentry-meta">${fmtDate(g.ts)} · ${g.rounds} round${g.rounds!==1?'s':''} · first to ${g.target}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Init ──
+  document.addEventListener('keydown', e => {
+    if (e.key==='Enter' && document.getElementById('game').classList.contains('active')) addRound();
+  });
+  loadHist();
+</script>
+</body>
+</html>
